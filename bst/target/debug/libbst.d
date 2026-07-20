@@ -1,0 +1,1 @@
+/home/forestlad/Program_trains/Test_rust/course/bst/target/debug/libbst.rlib: /home/forestlad/Program_trains/Test_rust/course/bst/src/lib.rs /home/forestlad/Program_trains/Test_rust/course/bst/src/node.rs /home/forestlad/Program_trains/Test_rust/course/bst/src/tree.rs
