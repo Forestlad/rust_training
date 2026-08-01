@@ -1,0 +1,31 @@
+# Rust build artifacts
+/target/
+**/target/
+
+# Cargo incremental and build caches
+**/incremental/
+**/build/
+
+# IDE and OS files
+/.vscode/
+/.idea/
+.DS_Store
+Thumbs.db
+
+# Compiled binaries and objects
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.bin
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Local environment files
+.env
