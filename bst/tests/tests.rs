@@ -1,6 +1,6 @@
 use bst::AVLTreeMap;
 use ntest::timeout;
-use rand::{seq::SliceRandom as _, Rng as _};
+use rand::{Rng as _, RngExt, seq::SliceRandom as _};
 use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -26,11 +26,11 @@ fn should_compile1() {
 #[test]
 fn should_compile2() {
     let mut map = AVLTreeMap::new();
-    assert_eq!(map.remove(&"hello".to_string()), None);
+    assert_eq!(map.remove("hello"), None);
     assert_eq!(map.insert("hello".to_string(), 1), None);
-    assert!(map.contains_key(&"hello".to_string()));
-    assert!(!map.contains_key(&"world".to_string()));
-    assert_eq!(map.remove_entry(&"hello".to_string()), Some(("hello".to_string(), 1)));
+    assert!(map.contains_key("hello"));
+    assert!(!map.contains_key("world"));
+    assert_eq!(map.remove_entry("hello"), Some(("hello".to_string(), 1)));
 }
 
 #[test]
@@ -86,12 +86,12 @@ fn test_nth() {
 #[timeout(1500)]
 fn performance1() {
     let count = 10000000;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut map = AVLTreeMap::new();
     let mut hash_map = HashMap::<u8, u8>::new();
     for _ in 0..count {
-        let key = rng.gen();
-        let value = rng.gen();
+        let key = rng.random();
+        let value = rng.random();
         map.insert(key, value);
         hash_map.insert(key, value);
     }
@@ -118,13 +118,13 @@ fn performance1() {
 #[timeout(2500)]
 fn performance2() {
     let count = 8000000;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut map = AVLTreeMap::new();
     let mut hash_map = HashMap::<u8, u8>::new();
     for _ in 0..count {
-        let key = rng.gen();
-        let value = rng.gen();
-        match rng.gen_range(0usize..10) {
+        let key = rng.random();
+        let value = rng.random();
+        match rng.random_range(0usize..10) {
             0..=7 => {
                 assert_eq!(map.insert(key, value), hash_map.insert(key, value));
             }
@@ -148,10 +148,10 @@ fn performance2() {
 #[timeout(1500)]
 fn performance3() {
     let count = 1000000;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut map = AVLTreeMap::<i32, i32>::new();
     for i in 0..count {
-        let value = rng.gen();
+        let value = rng.random();
         map.insert(i, value);
     }
     for _ in 0..count {
@@ -161,7 +161,7 @@ fn performance3() {
         map.remove(&i);
     }
     for i in 0..count {
-        let value = rng.gen();
+        let value = rng.random();
         map.insert(-i, value);
     }
     for _ in 0..count {
