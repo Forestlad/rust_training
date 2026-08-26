@@ -5,7 +5,8 @@ pub struct Node<K, V> {
     pub(crate) val: V,
     pub(crate) left: Option<Box<Node<K, V>>>,
     pub(crate) right: Option<Box<Node<K, V>>>,
-    pub(crate) height: usize,
+    pub(crate) balance_factor: i8,
+    pub(crate) size: usize,
 }
 
 pub enum Balance {
@@ -18,7 +19,7 @@ pub enum Balance {
 
 impl<K: Ord, V> Node<K, V> {
     pub fn new(key: K, val: V) -> Self {
-        Self { key, val, left: None, right: None, height: 0 }
+        Self { key, val, left: None, right: None, balance_factor: 0, size: 1 }
     }
     pub fn set_val(&mut self, val: V) -> V {
         std::mem::replace(&mut self.val, val)
@@ -31,36 +32,52 @@ impl<K: Ord, V> Node<K, V> {
         debug_assert!(self.right.is_none(), "Right child already exists!");
         self.right = Some(node);
     }
-    fn get_left_right_height(&self) -> (usize, usize) {
-        let left_h = self.left.as_ref().map_or(0, |x| x.height);
-        let right_h = self.right.as_ref().map_or(0, |x| x.height);
-        (left_h, right_h)
+    // fn get_left_right_height(&self) -> (usize, usize) {
+    //     let left_h = self.left.as_ref().map_or(0, |x| x.height);
+    //     let right_h = self.right.as_ref().map_or(0, |x| x.height);
+    //     (left_h, right_h)
+    // }
+    // pub fn correct_height(&mut self) {
+    //     let (left_h, right_h) = self.get_left_right_height();
+    //     self.height = left_h.max(right_h) + 1;
+    // }
+    pub fn left_size(&self) -> usize {
+        if let Some(x) = &self.left {
+            x.size
+        } else {
+            0
+        }
     }
-    pub fn correct_height(&mut self) {
-        let (left_h, right_h) = self.get_left_right_height();
-        self.height = left_h.max(right_h) + 1;
+
+    pub fn right_size(&self) -> usize {
+        if let Some(x) = &self.right {
+            x.size
+        } else {
+            0
+        }
     }
+
+    pub fn fix_size(&mut self) {
+        self.size = self.left_size() + self.right_size() + 1;
+    }
+
     pub fn check_balance(&self) -> Balance {
-        let (left_h, right_h) = self.get_left_right_height();
-        let del = left_h.abs_diff(right_h);
-        if del < 2 {
+        if self.balance_factor.abs() < 2 {
             Balance::Balanced
         } else {
-            if left_h < right_h {
-                let v = self.right.as_deref().unwrap();
-                let (lh, rh) = v.get_left_right_height();
-                if lh <= rh {
-                    Balance::LeftRotate
-                } else {
+            if self.balance_factor < 0 {
+                let v = self.right.as_deref().unwrap().balance_factor;
+                if v == 1  {
                     Balance::BigLeftRotate
+                } else {
+                    Balance::LeftRotate
                 }
             } else {
-                let v = self.left.as_deref().unwrap();
-                let (lh, rh) = v.get_left_right_height();
-                if rh <= lh {
-                    Balance::RightRotate
-                } else {
+                let v = self.left.as_deref().unwrap().balance_factor;
+                if v == 1 {
                     Balance::BigRightRotate
+                } else {
+                    Balance::RightRotate
                 }
             }
         }

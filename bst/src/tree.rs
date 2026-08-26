@@ -3,7 +3,6 @@ use crate::node::{Node, Balance};
 
 pub struct AVLTreeMap<K, V> {
     head: Option<Box<Node<K, V>>>,
-    size: usize,
 }
 
 impl<K: Ord, V> Default for AVLTreeMap<K, V> {
@@ -14,71 +13,66 @@ impl<K: Ord, V> Default for AVLTreeMap<K, V> {
 
 impl<K: Ord, V> AVLTreeMap<K, V> {
     pub fn new() -> Self {
-        Self { head: None, size: 0 }
+        Self { head: None }
     }
 
     pub fn len(&self) -> usize {
-        self.size
+        if let Some(h) = &self.head {
+            return h.size;
+        }
+        0
     }
 
     pub fn is_empty(&self) -> bool {
-        self.size == 0
+        self.head.is_none()
     }
 
     fn left_rotate(mut vertex: Box<Node<K, V>>) -> Box<Node<K, V>> {
         let mut r_child = vertex.remove_right().unwrap();
         if let Some(rl_child) = r_child.remove_left() {
             vertex.set_right(rl_child);
-            vertex.correct_height();
         }
+        let bf = r_child.balance_factor;
+        (vertex.balance_factor, r_child.balance_factor) = if bf == 0 {
+            (-1, 1)
+        } else {
+            (0, 0)
+        };
+        vertex.fix_size();
         r_child.set_left(vertex);
-        r_child.correct_height();
+        r_child.fix_size();
         r_child
-    }
-
-    fn big_left_rotate(mut vertex: Box<Node<K, V>>) -> Box<Node<K, V>> {
-        let mut r_child = vertex.remove_right().unwrap();
-        let mut rl_child = r_child.remove_left().unwrap();
-        if let Some(rlr) = rl_child.remove_right() {
-            r_child.set_left(rlr);
-            r_child.correct_height();
-        }
-        if let Some(rll) = rl_child.remove_left() {
-            vertex.set_right(rll);
-            vertex.correct_height();
-        }
-        rl_child.set_left(vertex);
-        rl_child.set_right(r_child);
-        rl_child.correct_height();
-        rl_child
     }
 
     fn right_rotate(mut vertex: Box<Node<K, V>>) -> Box<Node<K, V>> {
         let mut l_child = vertex.remove_left().unwrap();
         if let Some(lr_child) = l_child.remove_right() {
             vertex.set_left(lr_child);
-            vertex.correct_height();
         }
+        let bf = l_child.balance_factor;
+        (vertex.balance_factor, l_child.balance_factor) = if bf == 0 {
+            (-1, 1)
+        } else {
+            (0, 0)
+        };
+        vertex.fix_size();
         l_child.set_right(vertex);
-        l_child.correct_height();
+        l_child.fix_size();
         l_child
+    }
+
+    fn big_left_rotate(mut vertex: Box<Node<K, V>>) -> Box<Node<K, V>> {
+        let mut r_child = vertex.remove_right().unwrap();
+        r_child = Self::right_rotate(r_child);
+        vertex.set_right(r_child);
+        Self::left_rotate(vertex)
     }
 
     fn big_right_rotate(mut vertex: Box<Node<K, V>>) -> Box<Node<K, V>> {
         let mut l_child = vertex.remove_left().unwrap();
-        let mut lr_child = l_child.remove_right().unwrap();
-        if let Some(lrl) = lr_child.remove_left() {
-            l_child.set_right(lrl);
-            l_child.correct_height();
-        }
-        if let Some(lrr) = lr_child.remove_right() {
-            vertex.set_left(lrr);
-            vertex.correct_height();
-        }
-        lr_child.set_left(l_child);
-        lr_child.set_right(vertex);
-        lr_child.correct_height();
-        lr_child
+        l_child = Self::left_rotate(l_child);
+        vertex.set_left(l_child);
+        Self::right_rotate(vertex)
     }
 
     fn search_for_insert(head: &mut Option<Box<Node<K, V>>>, key: K, value: V) -> Option<V> {
@@ -96,7 +90,6 @@ impl<K: Ord, V> AVLTreeMap<K, V> {
             Self::search_for_insert(&mut vertex.right, key, value)
         };
         if res.is_none() {
-            vertex.correct_height();
             let balance = vertex.check_balance();
             vertex = match balance {
                 Balance::LeftRotate => Self::left_rotate(vertex),
@@ -110,8 +103,30 @@ impl<K: Ord, V> AVLTreeMap<K, V> {
         res
     }
 
-    // fn get(&self, key: ...) -> Option<&V>
-    // fn get_key_value(&self, key: ...) -> Option<&V>
+    pub fn get(&self, key: &K) -> Option<&V> {
+        let mut node = &self.head;
+        while let Some(curr) = node {
+            match curr.key.cmp(key) {
+                std::cmp::Ordering::Equal => return Some(&curr.val),
+                std::cmp::Ordering::Less => node = &curr.left,
+                std::cmp::Ordering::Greater => node = &curr.right,
+            }
+        }
+        None
+    }
+
+    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+        let mut node = &self.head;
+        while let Some(curr) = node {
+            match curr.key.cmp(key) {
+                std::cmp::Ordering::Equal => return Some((&curr.key, &curr.val)),
+                std::cmp::Ordering::Less => node = &curr.left,
+                std::cmp::Ordering::Greater => node = &curr.right,
+            }
+        }
+        None
+    }
+
     pub fn contains_key(&self, key: &K) -> bool {
         let mut node = &self.head;
         while let Some(curr) = node {
@@ -125,17 +140,11 @@ impl<K: Ord, V> AVLTreeMap<K, V> {
     }
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let res = Self::search_for_insert(&mut self.head, key, value);
-        if res.is_none() {
-            self.size += 1;
-        }
         res
     }
     // fn nth_key_value(&self, k: usize) -> Option<(&K, &V)>
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let res = Self::remove_node(&mut self.head, key);
-        if res.is_some() {
-            self.size -= 1;
-        }
         if let Some((_, v)) = res {
             Some(v)
         } else {
@@ -144,9 +153,6 @@ impl<K: Ord, V> AVLTreeMap<K, V> {
     }
     pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
         let res = Self::remove_node(&mut self.head, key);
-        if res.is_some() {
-            self.size -= 1;
-        }
         res
     }
 
@@ -163,7 +169,6 @@ impl<K: Ord, V> AVLTreeMap<K, V> {
             },
         };
         if res.is_some() {
-            vertex.correct_height();
             let balance = vertex.check_balance();
             vertex = match balance {
                 Balance::LeftRotate => Self::left_rotate(vertex),
@@ -179,5 +184,21 @@ impl<K: Ord, V> AVLTreeMap<K, V> {
 
     fn remove_help() {
         
+    }
+
+    pub fn nth_key_value(&self, mut n: usize) -> Option<(&K, &V)> {
+        let mut node = &self.head;
+        while let Some(curr) = node {
+            let left_size = curr.left_size();
+            match left_size.cmp(&n) {
+                std::cmp::Ordering::Equal => return Some((&curr.key, &curr.val)),
+                std::cmp::Ordering::Less => node = &curr.left,
+                std::cmp::Ordering::Greater => {
+                    n -= left_size + 1;
+                    node = &curr.right;
+                },
+            }
+        }
+        None
     }
 }

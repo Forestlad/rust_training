@@ -25,7 +25,7 @@ fn should_compile1() {
 
 #[test]
 fn should_compile2() {
-    let mut map = AVLTreeMap::new();
+    let mut map: AVLTreeMap<&str, i32> = AVLTreeMap::new();
     assert_eq!(map.remove("hello"), None);
     assert_eq!(map.insert("hello".to_string(), 1), None);
     assert!(map.contains_key("hello"));
